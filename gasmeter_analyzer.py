@@ -403,21 +403,26 @@ if (response != False):
     
     _LOGGER.debug("Convert Gauge readout values to a single value number...")
     meter_value = handle_readouts(readout_digit)
-    meter_value = round(meter_value, 2) #will store in last_read so keep consistent
-    _LOGGER.info("Meter value is %.2f", meter_value )
+    meter_value = np.round(meter_value, 2)
+    _LOGGER.info("Meter value is %f", meter_value )
+
+    #Compare current value with previous.
+    #  To avoid a problem  encountered a couple of times
+    #  when using floating point, we'll convert to int.
+    int_meter_value = int(meter_value * 100 ) 
 
     file = Path(data_path + 'last_read.txt')  
     if (file.is_file() ):
         with open(data_path + 'last_read.txt', 'r+') as g: #rd/wr
-            last_value = float(g.read())
-            _LOGGER.debug("Reading last_read.txt. Value: %.2f" , last_value)
+            last_value = int(g.read())
+            _LOGGER.debug("Reading last_read.txt. Value: %i" , last_value)
             
-            if (last_value > meter_value):
-                _LOGGER.warning("Previously read value > just read value. Not using meter value.")
+            if (last_value > int_meter_value):
+                _LOGGER.warning("Previously read value:%i > just read value:i. Not using meter value.",last_value, int_meter_value)
             else:
-                _LOGGER.debug("Previous value vs meter value... check passes. Updating last_read.txt")
+                _LOGGER.debug("Previous value:%i vs curent value:%i ... check passes. Updating last_read.txt", last_value, int_meter_value)
                 g.seek(0) #start at file beginning
-                g.write(str(meter_value))
+                g.write(str(int_meter_value))
                
                 if (len(broker_auth) == 0):
                     broker_auth = None
