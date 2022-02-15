@@ -12,13 +12,13 @@ This Project consists of the following software:
 # Gasmeter Analyzer
 The python3 code for the `gasmeter_analyzer` does the following:
 * Retrieves the image from the camera for the configured URL,
-* Rotates the image (See Alignment Doc TBD)
-* Takes the configured Dial Coordinates and determines the needle angle and thus a value for a given gauge.  A needle angle of 0 corresponds to "0" on the gauge.
+* Rotates the image in order to align the gauges along the horizontal plane.
+* Takes the configured "Dial Center Coordinates", searches for and locates the needle, and with it, its angle and thus a value for each gauge.  
 * "Reads the Meter" like a human.  A more significant gauge digit has its value determine in part based on the adjacent less significant gauge's digit value. The least significant gauge's dial is taken at face value (within a hundreth).
 * As a sanity check, it compares the just read meter value with a previously read meter value to make sure the values are never decreasing as the gas meter values are always increasing.
 * Publishes an MQTT message to a broker containing the just read meter value
 
-Before the analyzer can be used, **an alignment process must be performed  and the dial coordinates need to be determined** (Document TBDone).
+Before the analyzer can be used, **an alignment process must be performed  and the dial coordinates need to be determined.** See the [Alignment and Coordinates Doc](./readme_media/Align_Coordinates.pdf).
 
 Note: The code's image processing is rather CPU intensive and so one should take caution when deploying it on a system needing to do other important/critical things as well. _I actually wanted to try this out on a PiZeroW, but opencv2 (which gasmeter_analyser uses extensively) doesn't install so easily, and I didn't spend anymore time trying to get it to run._
  
@@ -35,14 +35,15 @@ Once all the gauges' dial values are determined, `gasmeter_analyzer` will come u
   Example: `image_url_postfix = '/gasmeter_last.npy' #include forward slash`. <br/>
   With these examples, the final URL will be `http://192.168.0.14:8080/gasmeter_last.npy` <br/>
 
-**Configuration of Local Operations**
+**Configuration of Local Operations**<br/>
+_See the [Alignment and Coordinates Doc](./readme_media/Align_Coordinates.pdf) for help in determining some of the configured values below._
 * `data_path` - The directory where gasmeter_analyzer will read/write files to.  
   For example, I use an old HA Python venv directory: `data_path = "/opt/homeassistant/venv_3.8/"` <br/>
 * `ROTATE_IMAGE` - Number of degress to rotate the image around its center. Positive values of degrees will rotate the image counterclockwise. <br/>
   Example: `ROTATE_IMAGE = +0.5`
-* `CIRCLE_RADIUS` - The distance, in number of pixels, from the center of the needle's axis of rotation to the tip of the needle. (See Alignment pdf) <br/>
+* `CIRCLE_RADIUS` - The distance, in number of pixels, from the center of the needle's axis of rotation to the tip of the needle. <br/>
   Example:  `CIRCLE_RADIUS = 107`
-* `gauge_centers` - The (x,y) coordinates, in number of pixels, for the center of the needle's axis of rotation.  (x=0,y=0) is located at the uppermost leftmost corner of the image.  The (x,y) values are always positive. (See Alignment pdf).  The coordinates are configured using a Python list structure with the first item representing the least signficant gauge digit (the gauge at the upper right from the Itron picture above), and the last item representing the most significant gauge digit (the gauge at the upper left from the Itron picture above). <br/>
+* `gauge_centers` - The (x,y) coordinates, in number of pixels, for the center of the needle's axis of rotation.  (x=0,y=0) is located at the uppermost leftmost corner of the image.  The (x,y) values are always positive.  The coordinates are configured using a Python list structure with the first item representing the least signficant gauge digit (the gauge at the upper right from the Itron picture above), and the last item representing the most significant gauge digit (the gauge at the upper left from the Itron picture above). <br/>
   Example: 
   ```
   gauge_centers = [
