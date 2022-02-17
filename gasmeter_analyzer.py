@@ -271,7 +271,8 @@ def handle_readouts(readout_digit):
     number = 0.0
     
     for i,v in enumerate(readout_digit):
-        digit.append(np.floor(readout_digit[i]) )
+       #digit.append(np.floor(readout_digit[i]))
+        digit.append(readout_digit[i])
         if i > 0:
             _LOGGER.debug("")
             _LOGGER.debug("readout digit [%i] is %.2f", i, readout_digit[i] )
@@ -309,13 +310,14 @@ def handle_readouts(readout_digit):
                         #Note Boundary Condition - Lower Portion
                         #  if readout_digit = 1.00, np.floor(1.00) is 1.00.
                         digit[i] = np.floor(readout_digit[i]) -1
-                        if digit[i] <= 0.0:
+                        if digit[i] < 0.0:
                             digit[i] = 9.0
                     else:
                         _LOGGER.debug("  Yes it did cross boundary. Rounding Down as normal")
                         digit[i] = np.floor(readout_digit[i])
                 else: 
                     _LOGGER.debug("  OK as is. Rounding Down as normal")
+                    digit[i] = np.floor(readout_digit[i])
 
         else:
             _LOGGER.debug("readout digit[0] is %.2f" % readout_digit[0] )
@@ -403,7 +405,7 @@ if (response != False):
     
     _LOGGER.debug("Convert Gauge readout values to a single value number...")
     meter_value = handle_readouts(readout_digit)
-    meter_value = np.round(meter_value, 2)
+    meter_value = np.round(meter_value, 2) 
     _LOGGER.info("Meter value is %f", meter_value )
 
     #Compare current value with previous.
@@ -418,7 +420,7 @@ if (response != False):
             _LOGGER.debug("Reading last_read.txt. Value: %i" , last_value)
             
             if (last_value > int_meter_value):
-                _LOGGER.warning("Previously read value:%i > just read value:i. Not using meter value.",last_value, int_meter_value)
+                _LOGGER.warning("Previously read value:%i > just read value:%i. Not using meter value.",last_value, int_meter_value)
             else:
                 _LOGGER.debug("Previous value:%i vs curent value:%i ... check passes. Updating last_read.txt", last_value, int_meter_value)
                 g.seek(0) #start at file beginning
@@ -433,6 +435,6 @@ if (response != False):
     else:
         _LOGGER.warning("last_read.txt does not exist. Creating it.")
         with open(data_path + 'last_read.txt', 'w') as g:
-            g.write(str(meter_value))
+            g.write(str(int_meter_value))
 else:
     _LOGGER.warning("HTTP response is false. Could not get camera image. Exiting")
