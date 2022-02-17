@@ -5,10 +5,10 @@ This project provides an Itron gas meter sensor that can be used with Home Assis
 
 This Project consists of the following software:
 * Gasmeter Analyzer - This retrieves an image (picture) taken of the Itron meter, and with configured input from the user on dial coordinates, it deterimines which angle each dial is pointing at, and converts this to a number.  The analyzer repeats this for each dial and then determines the "readout" value of the meter.  Once the value is determined, an MQTT Publish message is sent to an MQTT Broker containing the metered value.
-* Pi Camera - Although any camera will do, this project uses a Raspberry Pi ZeroW and a first generation camera module to take images of the meter.  There are two Python codes for this:
+* Pi Camera - Although any camera will do, this project uses a Raspberry Pi ZeroW and a first generation camera module to take images of the meter.  There are two Python code modules for this:
   * Raspberry Pi Camera - This Python code is used to take a picture of the meter.  It also turns on the lighting for the camera as well.
   * HTTP Server - This Python code is the http server for the Pi Camera.  It can be used to tell the PiCamera to capture an image, and it can be used to retrieve the image taken.  It can also be used to read the temperature of the Pi's CPU temperature monitor.
-
+* Shell Script - A linux shell script is made available that can be used to tell the RaspberryPi camera to take a picture of the gas meter, and then run the Gasmeter Analyzer.
 # Gasmeter Analyzer
 The python3 code for the `gasmeter_analyzer` does the following:
 * Retrieves the image from the camera for the configured URL,
@@ -78,7 +78,8 @@ _See the [Alignment and Coordinates Doc](./readme_media/Align_Coordinates.pdf) f
 * `topic` - The topic used for sending the gas meter's value. <br/>
   Example: `topic = "gasmeter/outside/value"`
 * `retain` - Whether to have the broker retain the gas meter's value. <br/>
-  Example: `retain = True #True or False.`
+  Example: `retain = True #True or False.`<br/>
+
 **Configure the Logger**
 The Logger is setup out of the box to send info, warning and error level logs to the system's syslog logger.  When first using gasmeter_analyzer, you may want more detailed output and you may want it sent instead directly to the console instead of the syslogger.
 * `DEBUG   = 0 #set to 1 to get debug information (and all other levels).`
@@ -93,13 +94,57 @@ The most important aspect of the analyzer is the lighting on the gasmeter face. 
 3. The needles can cast shadows.  The needles are essentially a 3D object protruding above the white faceplate of the meter. If there are too few points of lighting shining on the meter, chances are that while most of the dial is nicely illuminated, part of the dial will be darker due to a shadowing effect caused by the needle.  Portions of a gauge's silkscreen has a lot of black.  The '0' position on the gauge is a prime example where there is the "tick" mark in black, followed by the top and then bottom of the number '0' which is black, along with the direction pointing arrow which is also in black. If the needle is casting a shadow along this path, then the gasmeter_analyzer will see a lot of dark grayscale and may falsely interprete the needle as being in this position. <br/>
 
 _My solution was to use "Edison LED filaments" wrapped around the front edge/sides of the meter for the lighting._
-### Visual Perspective and Resolution
-The Camera's distance from the meter has a tradeoff.  One would like the perspective (i.e. bird's eye view) to be such that the meter and its needles look nearly 2D, so positioning the camera far from the meter makes this more and more possible.  The `gasmeter_analyzer` will have a more finer grain resolution in computing the dial's angle when more pixels are used around a gauge, so moving the camera too far away will end up with a smaller guage in the image and thus fewer pixels and thus a more coarse dial angle.  This project ended up with around 6.5" distance between the camera lens and the face of the gas meter, and a camera resolution of 2592 x 1944.
-# Raspbery Pi Camera
-## Camera Image Capture
-The guidelines in this section are mainly interested in configuring 
+<img alt="Edison Filament LEDs" src="./readme_media/EdisonLEDFilament.png" width="250" height="250"  />
 
-## HTTP Web Server For Camera
+### Visual Perspective and Resolution
+The Camera's distance from the meter has a tradeoff.  One would like the perspective (i.e. bird's eye view) to be such that the meter and its needles look nearly 2D, so positioning the camera far from the meter makes this possible.  The `gasmeter_analyzer` will have a more finer grain resolution in computing the dial's angle when more pixels are used around a gauge, so moving the camera too far away will end up with a smaller guage in the image and thus fewer pixels and thus a more coarse dial angle.  This project ended up with around 6.5" distance between the camera lens and the face of the gas meter, and a camera resolution of 2592 x 1944.
+
+<img alt="Gasmeter Analyzer Output" src="./readme_media/image3_pre_subplot_low.jpg" width="500" height="342" /><br/>
+_Here is what my final image looks like using proper lighting and various camera settings and it shows the gauge needles that Gasmeter Analyzer found._
+<br/>
+<br/>
+# Raspbery Pi Camera
+<img alt="Raspberry Pi Camera Assembly" src="./readme_media/PiCamera.png" width="250" height="194"  /><br/>
+_What my Raspberry Pi Camera looks like._ <br/>
+## 1) Camera Image Capture
+`gasmeter_PiCamera.py` is a Python3 module used to take a picture of the gas meter and turn the lighting on and off during the exposure period. This code makes use of the PiCamera python library (which is generally made available with a Raspberry Pi Camera). There was one particular setting, the Average White Balance set to "greyworld", that was used which is only available using the "PiCamera Extras" library, so `picamerax` is used instead of the regular `picamera` library.  It should be noted that the PiZeroW used in this project runs on "Buster".  It uses one of the last versions that came out just prior to "Bullseye" being released. <br/>
+
+**Lighting and Exposure Settings**<br/>
+Besides lighting (discussed above), the camera settings and exposure are key in capturing a proper image of the gas meter.  This makes it easier for the Gas Meter Analyzer to properly locate the gauge needles.  Lots of trial and errors were made to come up with the proper settings and exposure times.  The key settings involve:
+* Average White Balance - The Edison Filament LED used was a warm white 2200K which makes the gas meter's white face plate look nearly yellowish.  Ideally the AWB setting would correct for this.  'Greyworld' was the only setting that really worked.  As the Gasmeter Analyzer is looking for dark needles relative to a lighter faceplate, it really shouldn't matter that the faceplate white correction is not purely white.
+* Exposure Mode - Once the AWB was set, the exposure mode was tested.  Several settings were tried, and most did not have too many differences with `nightpreview` having a slight preference.  The one to avoid however is "fireworks".
+* Meter Mode - This allows you to select a region(s) of the image that the camera will use to determine exposure. The way the Edison Filament LEDs are used as edge lighting, the outer portion of the gasmeter faceplate is well lit, while the center (where a lot of the dial area is located) is somewhat darker.  I chose the `spot` mode which uses a small portion of the center of the image.  This brightens up the center of the gasmeter faceplate and shows the dials a little better.  As the Gasmeter Analyzer is looking for dark needles relative to a lighter faceplate, the meter mode should not make too much difference.
+* Exposure Time - This is the time between the camera module being activated and the image being captured.  This time allows the camera module's sensor and firmware to stabilize the image.  `sleep()` is used for this, and I found only a few seconds were needed.
+
+There are lots of settings in the file that are commented out as it was deemed those particular settings were not appropriate or was not as good as others, so I just left them in there.<br/>
+
+
+**LED Control** <br/>
+The Edison Filament LEDs consists of two 3.3V filament strings, one 260mm, and one 130mm.  When each is used with a R=21 Ohm resistor, the drive current at 3.3(ish) volts is around 13mA which a Pi I/O can drive and stay under the 16mA often cited as a workable maximum.  The code uses a couple of GPIOs to turn these two strings of LEDs on and Off.
+
+The PiZeroW and its attached Camera module both have small green and red LEDs respectively on their PCBs that when lit will reflect off of the gasmeter's faceplate.  The code contains an LED class that can turn off/on the PiZeroW's LED, but not the camera module's LED.  There are techniques available to turn off the camera module's LED, but they are not deployed here.  Instead, I simply used some putty to cover the camera module's LED.
+<br/>
+
+**Configuration** <br/>
+The code is not particularly structured for user configuration.  To make changes, you'll simply need to go through the code and make changes that work for your setup.  In particular, make sure the capture resolution is appropriate.  My PiCamera's camera module uses an OV5647 sensor, and the resolution is set to (2592, 1944).
+
+<br/>
+
+**Image Files**<br/>
+gasmeter_PiCamera saves image captured files in the Pi's ram directory located at `/run/shm/`.<br/>
+It saves two files: `gasmeter_last.jpg` and `gasmeter_last.npy`.  The latter file is a numpy array of the captured image (uncompressed) in 'RGB' order).
+<br/>
+
+**Misc**<br/>
+* `gasmeter_PiCamera.py` is structured to run standalone, or can be imported and run by another module, such as the one used as the camera's webserver.
+* `picamerax` - As mentioned earlier, the ["PiCamera Extras library" (called picamerax)](https://picamerax.readthedocs.io/en/latest/) is used instead of the regular picamera library. Install it as `$pip3 install picamerax`
+* `python3` - Make sure you run gasmeter_PiCamera.py using Python version 3.2 or higher.
+<br/>
+
+## 2) HTTP Web Server For Camera
+
+# Shell Script
+
 
 # Credits
 - Sonya Sawtelle: Wrote a nice and detailed Jupyter-based [blog](https://sdsawtelle.github.io/blog/output/automated-gauge-readout-with-opencv.html) on how to find a needle on an Itron Gas meter and interprete its angle.  The method `def find_needle` described in the blog is made use of in the `gasmeter_analyzer`.
