@@ -2,13 +2,17 @@
 This project provides an Itron gas meter sensor that can be used with Home Assistant.  In particular, this is for an Itron meter that looks like the following:
 
 <img alt="Itron Gas Meter" src="./readme_media/Itron_Gasmeter_low.jpg" width="500" height="500"  />
+The gas meter is read by taking a picture of the gas meter and using image processing to determine the gauge's dial settings. As will be discussed later, the key success to this project is the illumination of the gas meter and the camera settings when capturing an image. <br/><br/>
 
 This Project consists of the following software:
-* Gasmeter Analyzer - This retrieves an image (picture) taken of the Itron meter, and with configured input from the user on dial coordinates, it deterimines which angle each dial is pointing at, and converts this to a number.  The analyzer repeats this for each dial and then determines the "readout" value of the meter.  Once the value is determined, an MQTT Publish message is sent to an MQTT Broker containing the metered value.
-* Pi Camera - Although any camera will do, this project uses a Raspberry Pi ZeroW and a first generation camera module to take images of the meter.  There are two Python code modules for this:
-  * Raspberry Pi Camera - This Python code is used to take a picture of the meter.  It also turns on the lighting for the camera as well.
-  * HTTP Server - This Python code is the http server for the Pi Camera.  It can be used to tell the PiCamera to capture an image, and it can be used to retrieve the image taken.  It can also be used to read the temperature of the Pi's CPU temperature monitor.
-* Shell Script - A linux shell script is made available that can be used to tell the RaspberryPi camera to take a picture of the gas meter, and then run the Gasmeter Analyzer.
+* Gasmeter Analyzer - This retrieves a picture image taken of the Itron gas meter, and with configured input from the user on dial coordinates, it deterimines which angle each dial's needle is pointing at, and converts this to a number.  The analyzer repeats this for each dial and then determines the "readout" value of the meter.  Once the value is determined, an MQTT Publish message is sent to an MQTT Broker containing the metered value.
+* RaspberryPi Camera - Although any camera may work, this project uses a Raspberry Pi ZeroW and a first generation camera module to take images of the gas meter.  There are two Python code modules that are run on the Pi Camera:
+  * Camera Image Capture - This Python code is used to take a picture of the meter.  It also turns on the lighting for the camera as well.
+  * HTTP Web Server - This Python code is the http server for the Pi Camera.  It can be used to tell the PiCamera to capture an image, and it can be used to retrieve the image taken.  It can also be used to read the temperature of the Pi's CPU temperature monitor.
+* Shell Script - A linux shell script that tells the RaspberryPi camera to take a picture of the gas meter, and subsequently runs the Gasmeter Analyzer.
+
+There are also hardware aspects to this project, but only an overview is provided in an annex at the end.
+
 # Gasmeter Analyzer
 The python3 code for the `gasmeter_analyzer` does the following:
 * Retrieves the image from the camera for the configured URL,
@@ -30,10 +34,10 @@ Once all the gauges' dial values are determined, `gasmeter_analyzer` will come u
 ## Configuring
 **Configuration of For reaching the Gas Meter Camera**
 * `gasmeter_camera_ip` - IP address and Port to reach the gasmeter camera. HTTP GET requests are used with this. <br/>
-  Example: `gasmeter_camera_ip = '192.168.0.14:8080'`
+  Example: `gasmeter_camera_ip = '192.168.0.2:8080'`
 * `image_url_postfix` - The latter portion of the URL that is used retrieve the gasmeter image.  It is generally the filename with extension.  `gasmeter_analyzer` will accept `.jpg`, `.png`, and `.npy` (Numpy 3D array of the image).  _I actually use a numpy file type. JPEG compression can be lossy, and although PNG is a lossless compression, gasmeter_analyzer uses opencv which operates on numpy arrays, so by using a numpy file of the image there is no extra step in conversion._ <br/>
   Example: `image_url_postfix = '/gasmeter_last.npy' #include forward slash`. <br/>
-  With these examples, the final URL will be `http://192.168.0.14:8080/gasmeter_last.npy` <br/>
+  With these examples, the final URL will be `http://192.168.0.2:8080/gasmeter_last.npy` <br/>
 
 **Configuration of Local Operations**<br/>
 _See the [Alignment and Coordinates Doc](./readme_media/Align_Coordinates.pdf) for help in determining some of the configured values below._
@@ -103,9 +107,8 @@ The Camera's distance from the meter has a tradeoff.  One would like the perspec
 _Here is what my final image looks like using proper lighting and various camera settings and it shows the gauge needles that Gasmeter Analyzer found._
 <br/>
 <br/>
-# Raspbery Pi Camera
-<img alt="Raspberry Pi Camera Assembly" src="./readme_media/PiCamera.png" width="250" height="194"  /><br/>
-_What my Raspberry Pi Camera looks like._ <br/>
+# Raspbery Pi Camera Software
+
 ## 1) Camera Image Capture
 `gasmeter_PiCamera.py` is a Python3 module used to take a picture of the gas meter and turn the lighting on and off during the exposure period. This code makes use of the PiCamera python library (which is generally made available with a Raspberry Pi Camera). There was one particular setting, the Average White Balance set to "greyworld", that was used which is only available using the "PiCamera Extras" library, so `picamerax` is used instead of the regular `picamera` library.  It should be noted that the PiZeroW used in this project runs on "Buster".  It uses one of the last versions that came out just prior to "Bullseye" being released. <br/>
 
@@ -127,7 +130,6 @@ The PiZeroW and its attached Camera module both have small green and red LEDs re
 
 **Configuration** <br/>
 The code is not particularly structured for user configuration.  To make changes, you'll simply need to go through the code and make changes that work for your setup.  In particular, make sure the capture resolution is appropriate.  My PiCamera's camera module uses an OV5647 sensor, and the resolution is set to (2592, 1944).
-
 <br/>
 
 **Image Files**<br/>
@@ -137,25 +139,72 @@ It saves two files: `gasmeter_last.jpg` and `gasmeter_last.npy`.  The latter fil
 
 **Misc**<br/>
 * `gasmeter_PiCamera.py` is structured to run standalone, or can be imported and run by another module, such as the one used as the camera's webserver.
-* `picamerax` - As mentioned earlier, the ["PiCamera Extras library" (called picamerax)](https://picamerax.readthedocs.io/en/latest/) is used instead of the regular picamera library. Install it as `$pip3 install picamerax`
+* `picamerax` - As mentioned earlier, the ["PiCamera Extras library" (called picamerax)](https://picamerax.readthedocs.io/en/latest/) is used instead of the regular picamera library. Install it using `$pip3 install picamerax`
 * `python3` - Make sure you run gasmeter_PiCamera.py using Python version 3.2 or higher.
 <br/>
 
 ## 2) HTTP Web Server For Camera
+`gasmeter_http_server` is Python3 code that is the http server for the Pi Camera (using `port 8080`).  It can be used for the following:
+* Tell the PiCamera to capture an image.  A GET api url postfix `/api/capture_image` tells the webserver to call the Pi's Image capture code (See [Raspbery Pi Camera](./README.md#1-camera-image-capture)) above.  Example: `http://192.168.0.2:8080/api/capture_image`
+* Retrieve the image taken.  A GET url of "/gasmeter_last" with an extension of ".jpg", ".png" or ".npy" will retrieve the image file from /run/shm/ directory and provide it to the requestor.  Example: `http://192.168.0.2:8080/gasmeter_last.jpg`.
+* Read the temperature of the Pi's CPU temperature monitor. A GET api url postfix `api/cpu_temp` tells the webserver to read the PiZeroW's `thermal_zone0` and return the value in degrees celsius (in plain text).  Example:  `http://192.168.0.2:8080/api/cpu_temp` returns: `30.938`.
+
+**Configuration** <br/>
+There is not anything in particular that needs to be configured. Just be aware that out-of-the-box it is setup to use port 8080.
 
 # Shell Script
+`capture_analyze.sh` is a simple Linux Bash shell script that is provided with this project.  It provides two functions:
+* HTTP GET request to the camera to take a picture of the gas meter, and waits a seconds.
+* Runs the Gas Meter Analyzer.  It assumes the `gasmeter_analyzer` is in a Python3 virtual environment in a particular directory.  
+You will need to tailor this script somewhat to fit your needs.
 
-
+In my project, a Cron facility is available and job is setup to run the script every 45 minutes past the hour.  This gives enough time to run the script to completion and provide an update to the MQTT broker prior to hitting the next hour.  This gives Home Assistant's Energy Management component an updated reading just before it computes the next hourly interval of gas usage.  If interested, the cron entry I use is: 
+```
+45 0-23 * * * /opt/gasmeter/venv_3.8/capture_analyze.sh
+```
 # Credits
 - Sonya Sawtelle: Wrote a nice and detailed Jupyter-based [blog](https://sdsawtelle.github.io/blog/output/automated-gauge-readout-with-opencv.html) on how to find a needle on an Itron Gas meter and interprete its angle.  The method `def find_needle` described in the blog is made use of in the `gasmeter_analyzer`.
+- FunGuyPro: Put out a [YouTube](https://www.youtube.com/watch?app=desktop&v=LPHJNXNyK9M) that provided the idea of an enclosure for the Pi Camera.
 
 # License
 ```
 - MIT
 ```
-# 3D Enclosure
-This project also uses a 3D printed "box".  This box is used to hold the camera in place with the gas meter, and provides consistent illumination of the gas meter during both day and night.  The "box" provides the following:
-* Adapts to the front half of the meter on one end of the box.
+# Annex
+## Home Assistant - Gas Meter Sensor Configuration
+The following YAML config is used to create an MQTT sensor in Home Assistant that can be used with its Energy Management.
+
+```
+sensor:
+  # DIY Gasmeter
+  - platform: mqtt
+    unique_id: "13078054" 
+    name: Gas Meter
+    icon: mdi:gauge
+    state_topic: "gasmeter/outside/value"
+    unit_of_measurement: 'ft³' #Actual is ccf, but ccf not available in HA.
+    device_class: 'gas'
+    state_class: 'total_increasing' #value monotonically increasing
+    value_template: " {{ ( value | multiply(1))  | round (2) }}"
+```
+The Gas Meter Analyzer outputs a MQTT value as read from the meter, and in my case, the Itron gas meter readings are in units of ccf. As of this writting, Home Assistant does not support ccf units for its Energy Management.  The closest thing is cubic feet.  I chose in my setup to use ft³ but _pretend_ they are units of ccf.  If one wants actual ccf values, one can change the multiplier to `multiply(100)`.
+## Pi Camera Enclosure
+<img alt="Raspberry Pi Camera Assembly" src="./readme_media/PiCamera.png" width="250" height="194"  /><br/>
+_What my Raspberry Pi Camera looks like._ <br/>
+* ABS Junction box - A weatherproof ABS Junction box  with dimensions of 100x68x50mm was used.  The project started out with the idea of using a Pi Camera with built-in infrared lighting that would be housed in a weatherproof box, and the camera would be simply placed somewhere close to the gas meter.  As it turned out, the infrared lighting had reflections on the gasmeter that caused problems.  Since I ended up with a separate printed 3D enclosure and the Edison Filament LED lighting was external to the ABS enclosure requiring cabling,  I simply punched a square hole in the ABS enclosure to run the cabling plus it provided a clearer image for the camera.
+* Nylon Stand-offs - I used nylon standoffs with screws and hot glued them to the junction box.  These were used to hold the PiZeroW and the camera module in place.  A tall hex screw as used to secure the modules in place.
+* Waterproof Power Plugs - A hole was punched in the bottom of the enclosure and a waterproof female receptacle was mounted through the hole.  From there, a couple of wires were soldered to join the power plug to the PiZeroW.  An separate and external 2-pair powering cable was soldered to the male waterproof plug.  This provided a way to plug and unplug external power to the unit.
+* Lighting Cables - JR/Futoba cables and plugs that are used in Servo motor projects was used to provide the lighting cables.
+
+## Printed 3D Enclosure
+This project also uses a 3D printed "box".  This box is used to hold the camera in place with the gas meter, and it provides consistent illumination of the gas meter during both day and night.  The "box" provides the following:
+* Adapts to the front half of the Itron gas meter on one end of the box.  Note: not all Itron gas meter's have this mechanical style, so this may not fit a particular meter.
 * A groove to hold the Edison LED filament in place which allows the filament to surround the front edge of the meter.
-* Adapts to an enclosure on the other end that contains the Raspberry Pi camera.
+* Adapts to an enclosure containing the Raspberry Pi camera on the other end.
 The STL files will be provided some time in the future.
+
+## Future possiblities
+There are future changes/additions that may be considered further down the road:
+* Gasmeter Analyzer running directly on the PiZeroW.  If this turns out not to be feasible, then get it to work as an HA Add-On.
+* PiCamera Software running on Bullseye
+* Full blown MQTT client that includes availability/unavailable detection.
