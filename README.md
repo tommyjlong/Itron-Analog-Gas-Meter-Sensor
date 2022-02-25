@@ -97,7 +97,7 @@ The most important aspect of the analyzer is the homogeneous lighting of the gas
 2. The needles on the gauges are also reflective.  They are angled relative to the face of the meter, so lighting that is positioned near a dial can also reflect off of a needle.  You many not see this reflection until the needle has rotated to certain positions on the dial.  This kind of reflection causes the needle to be bright in the image, and keeps the analyzer from finding it.
 3. The needles can cast shadows.  The needles are essentially a 3D object protruding above the white faceplate of the meter. If there are too few points of lighting shining on the meter, chances are that while most of the dial is nicely illuminated, part of the dial will be darker due to a shadowing effect caused by the needle.  Portions of a gauge's silkscreen has a lot of black.  The '0' position on the gauge is a prime example where there is the "tick" mark in black, followed by the topmost and then bottommost portion of the number '0' which is black, along with the "direction pointing arrow" which is also in black. If the needle is casting a shadow along this path, then the gasmeter_analyzer will see a lot of dark grayscale and may falsely interprete the needle as being in this position. <br/>
 
-_My solution was to use "Edison LED filaments" wrapped around the front edge/sides of the meter for the lighting.  It provides hundreds of points of light, thus avoiding shadowing, and by wrapping it around the frontmost edge of the gasmeter's plastic casing, it avoids reflections while still illuminating the faceplate and the needles themselves._
+_My solution was to use "Edison LED filaments" wrapped around the front edge/sides of the meter for the lighting.  It provides hundreds of points of light, thus avoiding shadowing, and by wrapping it around the frontmost edge of the gasmeter's plastic casing, it avoids reflections while still illuminating the faceplate and the needles themselves._ <br/>
 <img alt="Edison Filament LEDs" src="./readme_media/EdisonLEDFilament.png" width="250" height="250"  />
 
 ### Visual Perspective and Resolution
@@ -197,10 +197,18 @@ _My Raspberry Pi Camera and its enclosure._ <br/>
 * Lighting Cables - JR/Futoba cables and plugs that are often used in Servo motor projects was used to provide the lighting cables.  The R=21Ω resistors were soldered in-line with the cables and heat shrink tubing was used.  The cable was made up of 2 halves, each end with a mating connector so that the ABS junction box could be disconnected from the lighting.
 
 ## Printed 3D Enclosure
-This project also used a 3D printed "box".  This box is used to hold the camera in place with the gas meter, and it provides consistent illumination of the gas meter during both day and night.  The "box" provides the following:
+This project also used a 3D printed "box".  This box is used to hold the camera in place with the gas meter, and since it encloses the gas meter faceplate in darkness, the LED illuminations can be made consistent during both day time and night time.  The "box" provides the following:
 * Adapts to the front half of the Itron gas meter on one end of the box.  Note: not all Itron gas meter's have this mechanical style, so this may not fit your particular meter.
-* A groove to hold the Edison LED filament in place which allows the filament to surround the front edge of the meter.
-* Adapts to an ABS junction box containing the Raspberry Pi camera on the other end.
+* A groove to hold the Edison LED filaments in place which allows the filament to surround the front edge of the meter.
+* Adapts to an ABS junction box containing the Raspberry Pi camera on the other end. <br/><br/>
+
+There are three separate printed parts:
+* Main body that adapts to the ABS enclosure and to the gas meter (along with grooves for the filaments)  
+* An extension for the gas meter side (along with grooves for the filaments)
+* An extension for the ABS enclosure side to add distance between the camera lens and the gasmeter faceplate.
+<img src="./readme_media/3D-Printed-Box.png" width=205 height=400 /> 
+
+
 The STL files will be provided some time in the future.
 
 ## Future possiblities
