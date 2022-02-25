@@ -110,11 +110,11 @@ _Here is what my final image looks like using proper lighting, various camera se
 # Raspbery Pi Camera Software
 
 ## 1) Camera Image Capture
-`gasmeter_PiCamera.py` is a Python3 module used to take a picture of the gas meter and turn the lighting on and off during the exposure period. This code makes use of the PiCamera python library (which is generally made available with a Raspberry Pi Camera). There was one particular setting, the Average White Balance set to "greyworld", that was used which is only available using the "PiCamera Extras" library, so `picamerax` is used instead of the regular `picamera` library.  It should be noted that the PiZeroW used in this project runs on "Buster".  It uses one of the last versions that came out just prior to "Bullseye" being released. <br/>
+`gasmeter_PiCamera.py` is a Python3 module used to take a picture of the gas meter and turn the lighting on and off during the exposure period. This code makes use of the PiCamera python library. There was one particular setting, the Average White Balance set to "greyworld", that was used which is only available using the "PiCamera Extras" library, so `picamerax` is used instead of the regular `picamera` library.  It should be noted that the PiZeroW used in this project runs on "Buster".  It uses one of the last versions of Buster that came out just prior to "Bullseye" being released. <br/>
 
 **Lighting and Exposure Settings**<br/>
 Besides lighting (discussed above), the camera settings and exposure are key in capturing a proper image of the gas meter.  This makes it easier for the Gas Meter Analyzer to properly locate the gauge needles.  Lots of trial and errors were made to come up with the proper settings and exposure times.  The key settings involve:
-* Average White Balance - The Edison Filament LED used was a warm white 2200K which makes the gas meter's white face plate look nearly yellowish.  Ideally the AWB setting would correct for this.  'Greyworld' was the only setting that really worked.  As the Gasmeter Analyzer is looking for dark needles relative to a lighter faceplate, it really shouldn't matter that the faceplate white correction is not purely white.
+* Average White Balance - The Edison Filament LED used was a warm white 2200K which makes the gas meter's white face plate look nearly yellowish.  There are many AWB settings to choose from but 'Greyworld' was the only setting that really worked.  As the Gasmeter Analyzer is looking for dark needles relative to a lighter faceplate, it really shouldn't matter that the faceplate white correction is not purely white.
 * Exposure Mode - Once the AWB was set, the exposure mode was tested.  Several settings were tried, and most did not have too many differences with `nightpreview` having a slight preference.  The one to avoid however is "fireworks".
 * Meter Mode - This allows you to select a region(s) of the image that the camera will use to determine exposure. The way the Edison Filament LEDs are used as edge lighting, the outer portion of the gasmeter faceplate is well lit, while the center (where a lot of the dial area is located) is somewhat darker.  I chose the `spot` mode which uses a small portion of the center of the image.  This brightens up the center of the gasmeter faceplate and shows the dials a little better.  As the Gasmeter Analyzer is looking for dark needles relative to a lighter faceplate, the meter mode should not make too much difference.
 * Exposure Time - This is the time between the camera module being activated and the image being captured.  This time allows the camera module's sensor and firmware to stabilize the image.  `sleep()` is used for this, and I found only a few seconds were needed.
@@ -123,42 +123,42 @@ There are lots of settings in the file that are commented out as it was deemed t
 
 
 **LED Control** <br/>
-The Edison Filament LEDs consists of two 3.3V filament strings, one 260mm, and one 130mm.  When each is used with a R=21 Ohm resistor, the drive current at 3.3(ish) volts is around 13mA which a Pi I/O can drive and stay under the 16mA often cited as a workable maximum.  The code uses a couple of GPIOs to turn these two strings of LEDs on and Off.
+The Edison Filament LEDs consists of two 3.3V filament strings, one 260mm, and one 130mm.  When each is used with a R=21Ω resistor, the drive current at 3.3(ish) volts is around 13mA which a Pi I/O can drive and stay under the 16mA often cited value as a workable maximum.  The code uses a couple of GPIOs to turn these two strings of LEDs on and Off.
 
-The PiZeroW and its attached Camera module both have small green and red LEDs respectively on their PCBs that when lit will reflect off of the gasmeter's faceplate.  The code contains an LED class that can turn off/on the PiZeroW's LED, but not the camera module's LED.  There are techniques available to turn off the camera module's LED, but they are not deployed here.  Instead, I simply used some putty to cover the camera module's LED.
+The PiZeroW PCB and its attached Camera module PCB both have a small green and red LED respectively that when lit will reflect off of the gasmeter's faceplate.  To avoid this reflection, the code contains an LED class that can turn off/on the PiZeroW's LED, but not the camera module's LED.  There are techniques available to turn off the camera module's LED, but they are not deployed here.  Instead, I simply used some putty to cover the camera module's LED.
 <br/>
 
 **Configuration** <br/>
-The code is not particularly structured for user configuration.  To make changes, you'll simply need to go through the code and make changes that work for your setup.  In particular, make sure the capture resolution is appropriate.  My PiCamera's camera module uses an OV5647 sensor, and the resolution is set to (2592, 1944).
+The code is not particularly structured for user configuration.  To make changes, you'll simply need to go through the code and make the changes that work for your setup.  In particular, make sure the capture resolution is set appropriate.  My PiCamera's camera module uses an OV5647 sensor, and I configured the resolution for 2592 x 1944 (WxH).
 <br/>
 
 **Image Files**<br/>
-gasmeter_PiCamera saves image captured files in the Pi's ram directory located at `/run/shm/`.<br/>
+`gasmeter_PiCamera` saves image captured files in the Pi's ram directory located at `/run/shm/`.<br/>
 It saves two files: `gasmeter_last.jpg` and `gasmeter_last.npy`.  The latter file is a numpy array of the captured image (uncompressed) in 'RGB' order).
 <br/>
 
 **Misc**<br/>
-* `gasmeter_PiCamera.py` is structured to run standalone, or can be imported and run by another module, such as the one used as the camera's webserver.
+* `gasmeter_PiCamera.py` is structured to run standalone, but it can also be imported and run by another module, such as `gasmeter_http_server`.
 * `picamerax` - As mentioned earlier, the ["PiCamera Extras library" (called picamerax)](https://picamerax.readthedocs.io/en/latest/) is used instead of the regular picamera library. Install it using `$pip3 install picamerax`
 * `python3` - Make sure you run gasmeter_PiCamera.py using Python version 3.2 or higher.
 <br/>
 
 ## 2) HTTP Web Server For Camera
 `gasmeter_http_server` is Python3 code that is the http server for the Pi Camera (using `port 8080`).  It can be used for the following:
-* Tell the PiCamera to capture an image.  A GET api url postfix `/api/capture_image` tells the webserver to call the Pi's Image capture code (See [Raspbery Pi Camera](./README.md#1-camera-image-capture)) above.  Example: `http://192.168.0.2:8080/api/capture_image`
-* Retrieve the image taken.  A GET url of "/gasmeter_last" with an extension of ".jpg", ".png" or ".npy" will retrieve the image file from /run/shm/ directory and provide it to the requestor.  Example: `http://192.168.0.2:8080/gasmeter_last.jpg`.
-* Read the temperature of the Pi's CPU temperature monitor. A GET api url postfix `api/cpu_temp` tells the webserver to read the PiZeroW's `thermal_zone0` and return the value in degrees celsius (in plain text).  Example:  `http://192.168.0.2:8080/api/cpu_temp` returns: `30.938`.
+* To tell the PiCamera to capture an image.  A GET api url postfix `/api/capture_image` tells the webserver to call the Pi's Image capture code (See [Raspbery Pi Camera](./README.md#1-camera-image-capture)) above.  Example of the full URL: `http://192.168.0.2:8080/api/capture_image`
+* Retrieve the image taken.  A GET url of "/gasmeter_last" with an extension of ".jpg", ".png" or ".npy" will retrieve the image file from /run/shm/ directory and provide it to the requestor.  Example of the full URL: `http://192.168.0.2:8080/gasmeter_last.jpg`.
+* Read the temperature of the Pi's CPU temperature monitor. A GET api url postfix `api/cpu_temp` tells the webserver to read the PiZeroW's `thermal_zone0` and return the value in degrees celsius (in plain text).  Example of the full URL:  `http://192.168.0.2:8080/api/cpu_temp`.  In this example, it returns: `30.938`.
 
 **Configuration** <br/>
 There is not anything in particular that needs to be configured. Just be aware that out-of-the-box it is setup to use port 8080.
 
 # Shell Script
 `capture_analyze.sh` is a simple Linux Bash shell script that is provided with this project.  It provides two functions:
-* HTTP GET request to the camera to take a picture of the gas meter, and waits a seconds.
+* Performs an HTTP GET request to the camera to take a picture of the gas meter, and then it waits a second.
 * Runs the Gas Meter Analyzer.  It assumes the `gasmeter_analyzer` is in a Python3 virtual environment in a particular directory.  
 You will need to tailor this script somewhat to fit your needs.
 
-In my project, a Cron facility is available and job is setup to run the script every 45 minutes past the hour.  This gives enough time to run the script to completion and provide an update to the MQTT broker prior to hitting the next hour.  This gives Home Assistant's Energy Management component an updated reading just before it computes the next hourly interval of gas usage.  If interested, the cron entry I use is: 
+In my project, a Cron facility is available and a job is setup to run the script every 45 minutes past the hour.  This gives enough time to run the script to completion and and have the gasmeter_analyzer provide an update to the MQTT broker prior to hitting the next hour.  This gives Home Assistant's Energy Management component an updated reading just before it computes the next hourly interval of gas usage.  If interested, the cron entry I use is: 
 ```
 45 0-23 * * * /opt/gasmeter/venv_3.8/capture_analyze.sh
 ```
@@ -172,7 +172,7 @@ In my project, a Cron facility is available and job is setup to run the script e
 ```
 # Annex
 ## Home Assistant - Gas Meter Sensor Configuration
-The following YAML config is used to create an MQTT sensor in Home Assistant that can be used with its Energy Management.
+The following YAML config was used to create an MQTT sensor in Home Assistant and this sensor can be used with its Energy Management integration.
 
 ```
 sensor:
@@ -187,24 +187,24 @@ sensor:
     state_class: 'total_increasing' #value monotonically increasing
     value_template: " {{ ( value | multiply(1))  | round (2) }}"
 ```
-The Gas Meter Analyzer outputs a MQTT value as read from the meter, and in my case, the Itron gas meter readings are in units of ccf. As of this writting, Home Assistant does not support ccf units for its Energy Management.  The closest thing is cubic feet.  I chose in my setup to use ft³ but _pretend_ they are units of ccf.  If one wants actual ccf values, one can change the multiplier to `multiply(100)`.
+The Gas Meter Analyzer outputs a MQTT value as read from the meter, and in my case, the Itron gas meter readings are in units of ccf. As of this writting, Home Assistant does not support ccf units for its Energy Management.  The closest thing is cubic feet.  I chose in my setup to use ft³ but _pretend_ they are units of ccf.  If one wants actual ccf values, one can change the multiplier in the value template to `multiply(100)`.
 ## Pi Camera Enclosure
 <img alt="Raspberry Pi Camera Assembly" src="./readme_media/PiCamera.png" width="250" height="194"  /><br/>
-_What my Raspberry Pi Camera looks like._ <br/>
-* ABS Junction box - A weatherproof ABS Junction box  with dimensions of 100x68x50mm was used.  The project started out with the idea of using a Pi Camera with built-in infrared lighting that would be housed in a weatherproof box, and the camera would be simply placed somewhere close to the gas meter.  As it turned out, the infrared lighting had reflections on the gasmeter that caused problems.  Since I ended up with a separate printed 3D enclosure and the Edison Filament LED lighting was external to the ABS enclosure requiring cabling,  I simply punched a square hole in the ABS enclosure to run the cabling plus it provided a clearer image for the camera.
-* Nylon Stand-offs - I used nylon standoffs with screws and hot glued them to the junction box.  These were used to hold the PiZeroW and the camera module in place.  A tall hex screw as used to secure the modules in place.
+_My Raspberry Pi Camera and its enclosure._ <br/>
+* ABS Junction box - A weatherproof ABS Junction box  with dimensions of 100x68x50mm was used.  The project started out with the idea of using a Pi Camera with built-in infrared lighting that would be housed in a weatherproof box, and the camera would be simply placed somewhere close to the gas meter.  As it turned out, the infrared lighting had reflections on the gasmeter that caused problems.  Since I needed cabling from the PiCamera I/O to the Edison Filament LED lighting which was external to the ABS enclosure,  I simply punched a square hole in the ABS enclosure to run the cabling plus it provided a clearer image for the camera.  I encased the ABS Junction box in a 3D printed "box" to make it waterproof again (or nearly so).
+* Nylon Stand-offs - I used hex nylon standoffs that had built in nylon screws extruding from one and hot glued the flat end of the screws to the insides of the junction box.  As the PiZeroW and the camera module have holes in their PCBs, rhe hex screws were inserted throught these holes and were used to hold the boards in place.  Tall and matching nylon hex nuts were used to secure the modules in place.
 * Waterproof Power Plugs - A hole was punched in the bottom of the enclosure and a waterproof female receptacle was mounted through the hole.  From there, a couple of wires were soldered to join the power plug to the PiZeroW.  An separate and external 2-pair powering cable was soldered to the male waterproof plug.  This provided a way to plug and unplug external power to the unit.
-* Lighting Cables - JR/Futoba cables and plugs that are used in Servo motor projects was used to provide the lighting cables.
+* Lighting Cables - JR/Futoba cables and plugs that are often used in Servo motor projects was used to provide the lighting cables.  The R=21Ω resistors were soldered in-line with the cables and heat shrink tubing was used.  The cable was made up of 2 halves, each end with a mating connector so that the ABS junction box could be disconnected from the lighting.
 
 ## Printed 3D Enclosure
-This project also uses a 3D printed "box".  This box is used to hold the camera in place with the gas meter, and it provides consistent illumination of the gas meter during both day and night.  The "box" provides the following:
-* Adapts to the front half of the Itron gas meter on one end of the box.  Note: not all Itron gas meter's have this mechanical style, so this may not fit a particular meter.
+This project also used a 3D printed "box".  This box is used to hold the camera in place with the gas meter, and it provides consistent illumination of the gas meter during both day and night.  The "box" provides the following:
+* Adapts to the front half of the Itron gas meter on one end of the box.  Note: not all Itron gas meter's have this mechanical style, so this may not fit your particular meter.
 * A groove to hold the Edison LED filament in place which allows the filament to surround the front edge of the meter.
-* Adapts to an enclosure containing the Raspberry Pi camera on the other end.
+* Adapts to an ABS junction box containing the Raspberry Pi camera on the other end.
 The STL files will be provided some time in the future.
 
 ## Future possiblities
 There are future changes/additions that may be considered further down the road:
-* Gasmeter Analyzer running directly on the PiZeroW.  If this turns out not to be feasible, then get it to work as an HA Add-On.
-* PiCamera Software running on Bullseye
+* Gasmeter Analyzer running directly on the PiZeroW.  If this turns out not to be feasible, then an option may be to get it working as an HA Add-On.
+* `gasmeter_PiCamera.py` using PiCamera2 library running on Bullseye.
 * Full blown MQTT client that includes availability/unavailable detection.
