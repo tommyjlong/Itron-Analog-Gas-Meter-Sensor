@@ -259,14 +259,19 @@ def read_gauge(angle, convention):
     return readout
 
 def handle_readouts(readout_digit):
+    #Define a tolerance value for how close a needle
+    #has to be to a digit boundary for it to be checked for crossing.
     #tolerance = 0.25 #Around +/- 9 degress from a digit
     #tolerance = 0.50 
-    tolerance = 0.40 
+    #tolerance = 0.40 
+    tolerance = 0.30 
 
     #Meter digits right to left are listed left to right
+    #A few samples left here for testing purposes.
     #readout_digit = [0.72, 0.03, 9.97, 9.77]
     #readout_digit = [1.72, 2.03, 9.30, 6.90]
     #readout_digit = [2.59, 0.14, 0.18, 9.58]
+
     digit = []
     number = 0.0
     
