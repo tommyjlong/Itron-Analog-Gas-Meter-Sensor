@@ -9,46 +9,67 @@ import logging.handlers #Needed for Syslog
 import sys
 from pathlib import Path #Use this to check for file existence
 import paho.mqtt.publish as publish
+import yaml
 
-#Analyzer Configs.
-data_path = "/opt/homeassistant/venv_3.8/" #Directory to store files.
-gasmeter_camera_ip = '192.168.0.10:8080'   #Camera http server ip:port
-image_url_postfix = '/gasmeter_last.jpg' #include forward slash
-ROTATE_IMAGE = +0.5 #positive values degrees counterclockwise
-CIRCLE_RADIUS = 107 
+#Get configuration parameters from 'config.yaml' file
+# pass in directory of config.yaml as argument. defaults to './'
+if (len(sys.argv) == 1):
+   config_dir = './'
+else:
+   config_dir = sys.argv[1]  #pass configuration directory as arg
+with open(config_dir + 'config.yaml', 'r') as file:
+    config = yaml.safe_load(file)
+
+data_path = config['data_path']
+
+gasmeter_camera_ip = config['gasmeter_camera_ip']
+
+image_url_postfix = config['image_url_postfix']
+
+ROTATE_IMAGE = config['rotate_image']
+
+CIRCLE_RADIUS = config['dials']['circle_radius']
+
 gauge_centers = [
-    (1615, 897),   #Least Significant gauge digit
-    (1384, 899), 
-    (1148, 899), 
-    (915, 903),    #Most Signficant gauge digit
-   #(556, 635), 
-   #(780, 913)
-    ]
-readout_conventions = [
-    "CW",          #Least Signficant gauge digit
-    "CCW", 
-    "CW", 
-    "CCW",         #Most Signficant gauge digit
-   #"CCW", 
-   #"CCW"
+    (config['dials']['gauge_centers']['digit4']['x'],
+      config['dials']['gauge_centers']['digit4']['y']),
+    (config['dials']['gauge_centers']['digit3']['x'],
+      config['dials']['gauge_centers']['digit3']['y']),
+    (config['dials']['gauge_centers']['digit2']['x'],
+      config['dials']['gauge_centers']['digit2']['y']),
+    (config['dials']['gauge_centers']['digit1']['x'],
+      config['dials']['gauge_centers']['digit1']['y']),
     ]
 
+readout_conventions = config['dials']['readout_conventions']
 
 #MQTT Configs:
-broker_auth = {}
-client_name = "gasmeter_single_pub_client"
-host_name = '192.168.0.11'
-#Optionally set a username and password for broker authentication.
-#username = "my_username"
-#password = "my_passwd"
-#broker_auth = {'username':username, 'password':password}
-topic = "gasmeter/outside/value"
-retain = True #True or False.
+client_name = config['mqtt']['client_name']
+
+host_name = config['mqtt']['host_name']
+
+#Set a username and optionally a password for broker authentication.
+username = config['mqtt']['username']
+broker_auth = None
+if username is not None:
+    password = config['mqtt']['password']
+    if password is not None:
+        broker_auth = {'username':username, 'password':password}
+    else:
+        broker_auth = {'username':username, 'password':None}
+
+topic = config['mqtt']['topic']
+
+retain = config['mqtt']['retain']
+if (retain == 'True'):
+    retain = True
+else:
+    retain = False
 
 # Setup Logger
-DEBUG   = 0 #set to 1 to get debug information.
-INFO    = 0 #set to 1 and DEBUG=0 to get info level information
-CONSOLE = 0 #set to 1 to send output to stdout, 0 to local syslog
+level = config['logger']['level']
+
+CONSOLE = config['logger']['console']
 
 _LOGGER = logging.getLogger(__name__)
 if CONSOLE:
@@ -68,7 +89,7 @@ else:
     handler2.setLevel(logging.NOTSET)
     _LOGGER.addHandler(handler2)
 
-if DEBUG:
+if level == 'debug':
     _LOGGER.setLevel(logging.DEBUG)
 #   _LOGGER.debug("The following Log levels are active:")
 #   _LOGGER.critical("    Critical, ")
@@ -76,7 +97,7 @@ if DEBUG:
 #   _LOGGER.warning("    Warning, ")
 #   _LOGGER.info("    Info, ")
 #   _LOGGER.debug("    Debug ")
-elif INFO:
+elif level == 'info':
     _LOGGER.setLevel(logging.INFO)
 else:
     _LOGGER.setLevel(logging.NOTSET)
@@ -431,8 +452,8 @@ if (response != False):
                 g.seek(0) #start at file beginning
                 g.write(str(int_meter_value))
                
-                if (len(broker_auth) == 0):
-                    broker_auth = None
+               #if (len(broker_auth) == 0):
+               #    broker_auth = None
                 _LOGGER.debug("Publishing to MQTT broker")
                 publish.single(topic=topic, payload=meter_value, retain=retain, \
                                hostname=host_name,client_id=client_name,\

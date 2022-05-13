@@ -1,0 +1,46 @@
+#Storage location for image files.
+data_path:  '/opt/gasmeter/venv_3.8/' 
+
+#Gas Meter Camera Image URL
+# Ex. http://192.168.3.10:8080/gasmeter_last.jpg
+gasmeter_camera_ip: '192.168.3.10:8080' #Camera IP:PORT
+image_url_postfix:  '/gasmeter_last.jpg' #include forward slash
+
+#Align Meter on the Horizontal with the Camera by rotating image.
+rotate_image: +0.42 #positive values degrees counterclockwise
+
+#Gauge Dial Coordinates in pixels. (x=0,y=0) is upper left corner of image.
+dials:
+  gauge_centers: 
+    digit1:   #Most Signficant gauge digit
+      x: 929 
+      y: 901   
+    digit2:   
+      x: 1163 
+      y: 900
+    digit3:   
+      x: 1396 
+      y: 894  
+    digit4:   #Least Significant gauge digit  
+      x: 1625 
+      y: 897  
+  circle_radius: 107  #Radius of the dials in pixels
+
+  #Rotational direction of each gauge in order of digit 4,3,2,1
+  readout_conventions: [ "CW", "CCW", "CW", "CCW" ] 
+
+#MQTT Configs:
+mqtt:
+  client_name: "gasmeter_single_pub_client"
+  host_name: '192.168.3.11'
+  #Set a username and optionally a password for broker authentication.
+  username: "mqtt_user"
+  password: "mqtt_password"
+  topic: "gasmeter/outside/value"
+  retain: "True" #"True" or "False"
+
+
+# Setup Logger
+logger:
+  level: 'info' #leave blank (no logs), set to 'debug' to get debug information, or 'info'.
+  console:  0 #set to 1 to send output to stdout, 0 to local syslog
