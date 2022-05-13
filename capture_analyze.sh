@@ -10,4 +10,4 @@ source /opt/gasmeter/venv_3.8/bin/activate
 
 #Run the Analyzer
 echo "Running Analyzer"
-python /opt/gasmeter/venv_3.8/gasmeter_analyzer.py
+python /opt/gasmeter/venv_3.8/gasmeter_analyzer.py /opt/gasmeter/venv_3.8/
