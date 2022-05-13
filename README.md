@@ -9,7 +9,7 @@ This Project consists of the following software:
 * RaspberryPi Camera - Although any camera may work, this project uses a Raspberry Pi ZeroW and a first generation camera module to take images of the gas meter.  There are two Python code modules that are run on the Pi Camera:
   * Camera Image Capture - This Python code is used to take a picture of the meter.  It also turns on the lighting for the camera as well.
   * HTTP Web Server - This Python code is the http server for the Pi Camera.  It can be used to tell the PiCamera to capture an image, and it can be used to retrieve the image taken.  It can also be used to read the temperature of the Pi's CPU temperature monitor.
-* Shell Script - A linux shell script that 1) sends to the RaspberryPi camera an http request for it to take a picture of the gas meter, and 2) subsequently runs the Gasmeter Analyzer which gets the image and runs the analysis.
+* Shell Script - A linux shell script that 1) sends to the RaspberryPi camera an http request for it to take a picture of the gas meter, and 2) subsequently calls the Gasmeter Analyzer (which gets the updated picture from the camera and runs the analysis).
 
 Besides the Pi Camera, there are other hardware aspects to this project including 3D printed parts, but only an overview is provided in an annex at the end.
 
@@ -32,63 +32,70 @@ The `gasmeter_analyzer` takes the configured dial coordinates for an individual 
 Once all the gauges' dial values are determined, `gasmeter_analyzer` will come up with a meter value similarly to how a human would read the gauges and come up with a value.  One of the main drivers for reading the meter like a human, rather than taking the readings at face value and rounding to the nearest digit, has to do with the fact that there are some 3D distortions in the image regarding the dials and their needle. A needle may look on the image as if it is at, or has sightly gone past, a digit marker (we'll call the digit boundary) whereas in reality it has not.  A way to determine a more true value of a given gauge's needle position relative to a digit boundary is to look at the previous less significant gauge's dial value.  For example, if a needle looks on the image (and likewise as seen by `gasmeter_analyzer') like it has moved barely past digit '1', we can look at the previous digit, and if the previous digit has gone past '9' and is approaching '0' but not past '0', then the needle of interest has not yet moved past digit '1'. Each gauge's dial value is determined this way and then rounded down to the nearest integer value (0 to 9). The exception will be the very least significant gauge's dial (as it doesn't have a lesser signficant gauge) so the least significant gauge's dial value is taken at face value.  Next, all the gauge's dial values are put together to form the meter's value.
 
 ## Configuring
+**Configuration YAML**<br/>
+`config.yaml` - Enter the configuration in a file named config.yaml. A sample config.yaml file is provided. `gasmeter_analyzer.py` assumes config.yaml is located in the same directory, but gasmeter_analyzer.py will take in as an argument, the directory path of config.yaml. Ex. `$ gasmeter_analyzer.py /opt/gasmeter/venv_3.8/` will have gasmeter_analyzer.py use the config.yaml file located in /opt/gasmeter/venv_3.8/
+
 **Configuration the URL of the Gas Meter Camera**
 * `gasmeter_camera_ip` - IP address and Port to reach the gasmeter camera. HTTP GET requests are used with this. <br/>
-  Example: `gasmeter_camera_ip = '192.168.0.2:8080'`
+  Example: `gasmeter_camera_ip: '192.168.0.2:8080'`
 * `image_url_postfix` - The latter portion of the URL that is used to retrieve the gasmeter image.  It is generally the filename with an extension.  `gasmeter_analyzer` will accept `.jpg`, `.png`, and `.npy`. .npy is a Numpy 3D array of the image.  _I actually use a numpy file type. JPEG compression can be lossy, and although PNG is a lossless compression, gasmeter_analyzer uses opencv which operates on numpy arrays, so by using a numpy file of the image there is no extra step in conversion._ <br/>
-  Example: `image_url_postfix = '/gasmeter_last.npy' #include forward slash`. <br/>
+  Example: `image_url_postfix: '/gasmeter_last.npy' #include forward slash`. <br/>
   With these examples, the final URL will be `http://192.168.0.2:8080/gasmeter_last.npy` <br/>
 
 **Configuration For Local Operations**<br/>
 _See the [Alignment and Coordinates Doc](./readme_media/Align_Coordinates.pdf) for help in determining some of the configured values mentioned here._
-* `data_path` - The directory where gasmeter_analyzer will read/write files to.  
-  For example, I use a Python venv directory: `data_path = "/opt/gasmeter/venv_3.8/"` <br/>
-* `ROTATE_IMAGE` - Number of degress to rotate the image around its center. Positive values of degrees will rotate the image counterclockwise. <br/>
-  Example: `ROTATE_IMAGE = +0.5`
-* `CIRCLE_RADIUS` - The distance, in number of pixels, from the center of the needle's axis of rotation to the tip of the needle. <br/>
-  Example:  `CIRCLE_RADIUS = 107`
-* `gauge_centers` - The (x,y) coordinates, in number of pixels, for the center of the needle's axis of rotation.  (x=0,y=0) is located at the uppermost leftmost corner of the image.  The (x,y) values are always positive.  The coordinates are configured using a Python list structure with the first item representing the least signficant gauge digit (from the Itron picture above, it is the upper rightmost gauge), and the last item representing the most significant gauge digit (from the Itron picture above its the upper leftmost gauge). <br/>
-  Example: 
+* `data_path` - The directory where gasmeter_analyzer will read/write files to.  These are mostly image files.
+  For example, I use a Python venv directory: `data_path: "/opt/gasmeter/venv_3.8/"` <br/>
+* `rotate_image` - Number of degress to rotate the image around its center. This is to align the meter along the horizontal with the camera.  Positive values of degrees will rotate the image counterclockwise. <br/>
+  Example: `rotate_image: +0.5`
+* `circle_radius` - The distance, in number of pixels, from the center of the needle's axis of rotation to the tip of the needle. <br/>
+  Example:  `circle_radius: 107`
+* `gauge_centers` - The (x,y) coordinates, in number of pixels, for the center of the needle's axis of rotation.  (x=0,y=0) is located at the uppermost leftmost corner of the image.  The (x,y) values are always positive.  The coordinates are configured with the first item, `digit1`, representing the most significant gauge digit (from the Itron picture above its the upper leftmost gauge) and the last item, `digit4` representing the least signficant gauge digit (from the Itron picture above, it is the upper rightmost gauge). Note: The Analyzer code/debug uses gauge numbering with gauge1 as digit4, and gauge4 as digit1.<br/> 
+  Example:
   ```
-  gauge_centers = [
-    (1615, 897),   #Least Significant gauge digit
-    (1384, 899),
-    (1148, 899),
-    (915, 903)     #Most Signficant gauge digit
-    ]
+  gauge_centers:
+    digit1:   #Most Signficant gauge digit
+      x: 929
+      y: 901
+    digit2:
+      x: 1163
+      y: 900
+    digit3:
+      x: 1396
+      y: 894
+    digit4:   #Least Significant gauge digit
+      x: 1625
+      y: 897
+
   ```
-* `readout_conventions` - The rotational direction of each gauge either `CW` for clockwise, or `CCW` for counter-clockwise. These conventions are configured using a Python list structure with the first item representing the least signficant gauge digit (from the Itron picture above, it is the upper rightmost gauge), and the last item representing the most significant gauge digit (from the Itron picture above its the upper leftmost gauge). <br/>
+* `circle_radius` - The distance, in number of pixels, from the center of the needle's axis of rotation to the tip of the needle. <br/>
+  Example:  `circle_radius: 107`
+* `readout_conventions` - The rotational direction of each gauge either `CW` for clockwise, or `CCW` for counter-clockwise. These conventions are configured with the first item (left most) representing digit1 (least signficant gauge digit (from the Itron picture above, it is the upper rightmost gauge)), and the last item representing digit4 (the most significant gauge digit (from the Itron picture above its the upper leftmost gauge)). <br/>
   Example of the Itron gasmeter picture above:
   ```
-  readout_conventions = [
-    "CW",    #Least Significant gauge digit
-    "CCW",
-    "CW",
-    "CCW"    #Most Signficant gauge digit
-    ]
+  readout_conventions: ["CW", "CCW", "CW", "CCW"]
   ```
 **Configuration of MQTT Client** <br/>
 `gasmeter_analyzer` provides an MQTT Client which uses a simple single shot publisher for each message sent to the broker.
 * `client_name` - A name used by the broker to identify the gasmeter_analyzer as an MQTT client. <br/>
-  Example: `client_name = "gasmeter_single_pub_client"`
+  Example: `client_name: "gasmeter_single_pub_client"`
 * `host_name` - IP Address of the MQTT Broker. <br/>
-  Example: `host_name = '192.168.0.15'
+  Example: `host_name: '192.168.3.11'`
 * `username`and `password` - If you use authentication to access the MQTT broker, this is the username and password to be used. <br/>
   Example:
   ```
-  username = "mqtt_broker_username"
-  password = "mqtt_broker_passwd"
+  username: "mqtt_user"
+  password: "mqtt_passwd"
   ```
 * `topic` - The topic used for sending the gas meter's value. <br/>
-  Example: `topic = "gasmeter/outside/value"`
+  Example: `topic: "gasmeter/outside/value"`
 * `retain` - Whether to have the broker retain the gas meter's value. <br/>
-  Example: `retain = True #True or False.`<br/>
+  Example: `retain: "True" #"True" or "False".`<br/>
 
 **Configure the Logger** <br/>
-The Logger is setup out of the box to send info, warning and error level logs to its system's syslog logger.  When first using gasmeter_analyzer, you may want more detailed output and you may want it sent directly to the console instead of the syslogger.
-* `DEBUG   = 0 #set to 1 to get debug information (and all other levels).`
-* `INFO    = 1 #set to 1 and DEBUG=0 to send info, warning, and error level information`
-* `CONSOLE = 0 #set to 1 to send output to stdout, 0 to local syslog`
+You can set the log level (none, info, debug) and where to send the output (local syslog or console).  When first using gasmeter_analyzer, you may want more detailed output and you may want it sent directly to the console instead of the syslogger.
+* `level: 'info' #leave blank (no logs), set to 'debug' to get debug information, or 'info'. `
+* `console: 0 #set to 1 to send output to stdout, 0 to local syslog`
 
 ## Gasmeter Analyzer - Restrictions
 ### Lighting
@@ -155,10 +162,10 @@ There is not anything in particular that needs to be configured. Just be aware t
 # Shell Script
 `capture_analyze.sh` is a simple Linux Bash shell script that is provided with this project.  It provides two functions:
 * Performs an HTTP GET request to the camera to take a picture of the gas meter, and then it waits a second.
-* Runs the Gas Meter Analyzer.  It assumes the `gasmeter_analyzer` is in a Python3 virtual environment in a particular directory.  
+* Runs the Gas Meter Analyzer.  It assumes the `gasmeter_analyzer` is in a Python3 virtual environment in a particular directory.  It can also pass in as an argument to gasmeter_analyaer.py the directory location of where the config.yaml file is located.  A sample is provided.
 You will need to tailor this script somewhat to fit your needs.
 
-In my project, a Cron facility is available and a job is setup to run the script every 45 minutes past the hour.  This gives enough time to run the script to completion and and have the gasmeter_analyzer provide an update to the MQTT broker prior to hitting the next hour.  This gives Home Assistant's Energy Management component an updated reading just before it computes the next hourly interval of gas usage.  If interested, the cron entry I use is: 
+In my project, a Cron facility is available and a job is setup to run the script every 45 minutes past the hour.  This gives enough time to run the script to completion  and have the gasmeter_analyzer provide an update to the MQTT broker and on to Home Assistant prior to hitting the next hour.  This gives Home Assistant's Energy Management component an updated reading just before it computes the next hourly interval of gas usage.  If interested, the cron entry I use is: 
 ```
 45 0-23 * * * /opt/gasmeter/venv_3.8/capture_analyze.sh
 ```
