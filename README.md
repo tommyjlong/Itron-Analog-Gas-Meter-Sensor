@@ -204,19 +204,17 @@ _My Raspberry Pi Camera and its enclosure._ <br/>
 * Lighting Cables - JR/Futoba cables and plugs that are often used in Servo motor projects was used to provide the lighting cables.  The R=21Ω resistors were soldered in-line with the cables and heat shrink tubing was used.  The cable was made up of 2 halves, each end with a mating connector so that the ABS junction box could be disconnected from the lighting.
 
 ## Printed 3D Enclosure
-This project also used a 3D printed "box".  This box is used to hold the camera in place with the gas meter, and since it encloses the gas meter faceplate in darkness, the LED illuminations can be made consistent during both day time and night time.  The "box" provides the following:
-* Adapts to the front half of the Itron gas meter on one end of the box.  Note: not all Itron gas meter's have this mechanical style, so this may not fit your particular meter.
-* A groove to hold the Edison LED filaments in place which allows the filament to surround the front edge of the meter.
-* Adapts to an ABS junction box containing the Raspberry Pi camera on the other end. <br/><br/>
+This project uses a 3D printed enclosure.  This enclosure is used to mount the camera's ABS junction box on one side and the Itron part of the gas meter on the other side. It also has grooves to house the filament LEDs around the front edge of the Itron faceplate.  
+<br/>
+There are three separate 3D printed parts:
+* Main body -  This is the main enclosure body (it is actually made up of longer versions of the other two parts that are combined into one). On the gasmeter facing side, it provides grooves  to give more spacing to the LED filaments when joined with the Itron Adatper part.  The 3D file for this is  `Itron_Box_Combo_xxx.stl`.
+* Camera Adapter - An adapter for the camera's ABS junction box. The ABS junction box fits into it on one side, and this part is glued to the Main body on the other side.  It is used as an extension in order to provide more distance between the camera and the Itron faceplate. This file is `Box_Adapter_xxx`.stl
+* Itron Adapter - An adapter for the Itron portion of the gas meter.  Not all Itron gas meter's have this mechanical style, so this may not fit your particular meter. This adapter also has a groove (on the side facing away from the meter) that is used to hold the Edison LED filaments in place. I hot glued the LED filament into these grooves. This groove positions the filament(s) to surround meter on its side near the front giving it an edge emitter type of illumination.  So when gluing the LED filament, make sure they remain inside the groove volume. The 3D file for this is `Itron_Adapter_FilamentLEDxxx.stl`.
 
-There are three separate printed parts:
-* Main body that adapts to the ABS enclosure and to the gas meter (along with grooves for the filaments)  
-* An extension for the gas meter side (along with grooves for the filaments)
-* An extension for the ABS enclosure side to add distance between the camera lens and the gasmeter faceplate.
+I glued these three parts together using super-glue.  This allows one to assemble the LED into the groove more easily on the Itron side, and it allows for adding more distance on the camera side. <br/>
 <img src="./readme_media/3D-Printed-Box.png" width=205 height=400 /> 
 
-
-The STL files will be provided some time in the future.
+_The 3D enclosure was intended to surround the Itron part of the gas meter well enough to make it completely dark inside so that the LED illuminations could make the lighting consistent during both day time and night time.  However it didn't work out perfectly, so I ended up covering the Itron portion of the enclosure as well as the gas meter itself using a dark plastic sheeting and this made it completely dark inside (plus it adds a little more water-proofing too)._
 
 ## Future possiblities
 There are future changes/additions that may be considered further down the road:
