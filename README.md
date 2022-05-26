@@ -11,7 +11,7 @@ This Project consists of the following software:
   * HTTP Web Server - This Python code is the http server for the Pi Camera.  It can be used to tell the PiCamera to capture an image, and it can be used to retrieve the image taken.  It can also be used to read the temperature of the Pi's CPU temperature monitor.
 * Shell Script - A linux shell script that 1) sends to the RaspberryPi camera an http request for it to take a picture of the gas meter, and 2) subsequently calls the Gasmeter Analyzer (which gets the updated picture from the camera and runs the analysis).
 
-Besides the Pi Camera, there are other hardware aspects to this project including 3D printed parts, but only an overview is provided in an annex at the end.
+Besides the Pi Camera, there are other hardware aspects to this project including 3D printed parts, which is covered in an annex at the end.
 
 # Gasmeter Analyzer
 The python3 code for the `gasmeter_analyzer` does the following:
