@@ -27,7 +27,7 @@ gasmeter_camera_ip = config['gasmeter_camera_ip']
 image_url_postfix = config['image_url_postfix']
 
 ROTATE_IMAGE = config['rotate_image']
-
+GRAY_THRESHOLD = config['gray_threshold'] 
 CIRCLE_RADIUS = config['dials']['circle_radius']
 
 gauge_centers = [
@@ -222,8 +222,8 @@ def find_needle(image, circ_col, circ_row, circ_rad):
 
     # Draw lines between gauge center and perimeter pixels
     #   and compute mean and std dev of pixels along lines
-    stds = []
-    means = []
+   #stds = []        #uncomment if stardard deviation is to be computed
+    algo_val = []    #used for both Mean and MaxGrayPixels algorithms
     gray_values = []
 
     #For each line to be drawn:
@@ -245,22 +245,33 @@ def find_needle(image, circ_col, circ_row, circ_rad):
         # Compute grayscale with naive equation.
         #   This is done for all pixels making up the drawn line.
         grays = (b.astype(int) + g.astype(int) + r.astype(int))/3
-
-        stds.append(np.std(grays))
-        means.append(np.mean(grays))
         gray_values.append(grays)
 
-    #Add to Dataframe: Line's Standard Deviation, Mean, and all its Gray values
-    df["stds"] = stds
-    df["means"] = means
-    df["gray_values"] = gray_values
+       #stds.append(np.std(grays))  #uncomment if standard deviations to be computed
 
-    # Search DataFrame and find Line with smallest mean value.
-    #   (This will be the predicted Gauge Needle location)
+        #Run either the original "minimum mean gray values" algorithm or the "max number of gray pixels"
+        if GRAY_THRESHOLD == 0:
+            algo_val.append(np.mean(grays))
+        else:
+            algo_val.append(grays[ np.where( grays < GRAY_THRESHOLD)].size )
+
+    #Add to Dataframe: Line's Standard Deviation, Mean, and all its Gray values
+   #df["stds"] = stds
+    df["gray_values"] = gray_values
+    df["algo_val"] = algo_val
+
+    # Search DataFrame and find Line with the best algorithm match
+    # 1) Original algorithm uses smallest mean value of all the needle's gray pixels.
+    # 2) Newer algorithm uses largest number of gray pixels
+    # This will be the predicted Gauge Needle location.
     # The DataFrame index of this Line will also
     #   provide the index to the corresponding needle clock angle.
-    min_mean = df["means"].min()
-    needle_angle = df.loc[df["means"] == min_mean, "clock_angle"].values[0]  # Find needle angle
+    if GRAY_THRESHOLD == 0:
+        algo_match = df["algo_val"].min()
+    else:
+        algo_match = df["algo_val"].max()
+
+    needle_angle = df.loc[df["algo_val"] == algo_match, "clock_angle"].values[0]  # Find needle angle
 
     return df, needle_angle
 

@@ -9,6 +9,9 @@ image_url_postfix:  '/gasmeter_last.jpg' #include forward slash
 #Align Meter on the Horizontal with the Camera by rotating image.
 rotate_image: +0.42 #positive values degrees counterclockwise
 
+#If using Max num gray pixels algorith, set the threshold.
+gray_threshold: 70 #0 to 255; 0 - Use "mean" algorithm instead
+
 #Gauge Dial Coordinates in pixels. (x=0,y=0) is upper left corner of image.
 dials:
   gauge_centers: 
