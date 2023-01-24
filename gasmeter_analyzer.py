@@ -30,6 +30,9 @@ ROTATE_IMAGE = config['rotate_image']
 GRAY_THRESHOLD = config['gray_threshold'] 
 CIRCLE_RADIUS = config['dials']['circle_radius']
 
+
+CENTER_RADIUS = config['dials']['center_radius'] 
+
 gauge_centers = [
     (config['dials']['gauge_centers']['digit4']['x'],
       config['dials']['gauge_centers']['digit4']['y']),
@@ -42,6 +45,7 @@ gauge_centers = [
     ]
 
 readout_conventions = config['dials']['readout_conventions']
+max_increase = config['max_increase']
 
 #MQTT Configs:
 client_name = config['mqtt']['client_name']
@@ -236,6 +240,12 @@ def find_needle(image, circ_col, circ_row, circ_rad):
     for (pt_col, pt_row) in df["indices"].values:
         blank = np.zeros(image.shape[:2], dtype=np.uint8)
         cv2.line(blank, (circ_col, circ_row), (pt_col, pt_row), 255, thickness=2)  # Draw function wants center point in (col, row) order like coordinates
+
+       #Algorithm tweak.  Remove the needle's center circle from the calculation
+       # by filling it (-1) with 0.  One must set the size of the circle
+        if (CENTER_RADIUS > 0):
+            cv2.circle(blank,(circ_col,circ_row), CENTER_RADIUS, 0, -1)
+
         ind_row, ind_col = np.nonzero(blank)
         b = image[:, :, 0][ind_row, ind_col]
         g = image[:, :, 1][ind_row, ind_col]
@@ -397,6 +407,7 @@ if (response != False):
     _LOGGER.debug("Rotating Image .....")
     imcopy_pre_rot = image.copy()
     imcopy = rotate(imcopy_pre_rot, ROTATE_IMAGE )
+    imcopy_debug = imcopy.copy() #capture rotated image for mis-readings
     cv2.imwrite(data_path + 'image2_rotated.jpg', imcopy)
     
 
@@ -458,6 +469,11 @@ if (response != False):
             
             if (last_value > int_meter_value):
                 _LOGGER.warning("Previously read value:%i > just read value:%i. Not using meter value.",last_value, int_meter_value)
+            elif (int_meter_value - last_value > max_increase):
+                _LOGGER.warning("Just read value:%i - prev read value:%i > max_change. \
+                  Not using meter value.",int_meter_value, last_value)
+                cv2.imwrite(data_path + 'image2_rotated_'+ str(int_meter_value) +'.jpg', imcopy_debug)
+                cv2.imwrite(data_path + 'image3_pre_subplot_' + str(int_meter_value) + '.jpg', imcopy)
             else:
                 _LOGGER.debug("Previous value:%i vs curent value:%i ... check passes. Updating last_read.txt", last_value, int_meter_value)
                 g.seek(0) #start at file beginning

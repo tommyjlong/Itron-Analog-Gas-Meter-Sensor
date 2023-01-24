@@ -9,7 +9,7 @@ image_url_postfix:  '/gasmeter_last.jpg' #include forward slash
 #Align Meter on the Horizontal with the Camera by rotating image.
 rotate_image: +0.42 #positive values degrees counterclockwise
 
-#If using Max num gray pixels algorith, set the threshold.
+#If using Max num gray pixels algorithm, set the threshold.
 gray_threshold: 70 #0 to 255; 0 - Use "mean" algorithm instead
 
 #Gauge Dial Coordinates in pixels. (x=0,y=0) is upper left corner of image.
@@ -32,6 +32,12 @@ dials:
   #Rotational direction of each gauge in order of digit 4,3,2,1
   readout_conventions: [ "CW", "CCW", "CW", "CCW" ] 
 
+  #Advanced Tuning: Can remove the needle's center circle of rotation from calculations.
+  #  Radius is the size of the needle's center circle in pixels.
+  center_radius: 0 #zero value disables this tuning.
+
+#Max Increase between readings.  10000 or higher should effectively disable
+max_increase: 10000
 #MQTT Configs:
 mqtt:
   client_name: "gasmeter_single_pub_client"

@@ -82,6 +82,12 @@ _See the [Alignment and Coordinates Doc](./readme_media/Align_Coordinates.pdf) f
   ```
   readout_conventions: ["CW", "CCW", "CW", "CCW"]
   ```
+* `center_radius` - This is considered an advanced tuning parameter.  When set to 0, it has no effect.  Otherwise it should be set close to the radius (in pixels) of the needle's spindle as seen in the image.  When set to 0, the algorithms will normally read the gray-ish-ness of the pixels of this spindle starting from the center of the spindle all the way to the end of the needle.  Setting this to non-zero value X will not read the first X pixels starting at the center of the spindle.  Depending on the lighting, the spindle closest to the lights can be light gray  and the part away from the light can be a darker and this can make a difference if some of the needle readings are close in the calculations.<br/>
+  Example:  `center_radius: 30`
+
+* `max_increase` - Sometimes misreadings can occur and when it happens, the resulting change from the previous reading can be large.  When a decrease occurs, the value read is ignored as the value should always be increasing (or no change). But when it increases, this parameter can apply a limit on how much an increase is considered as valid.  Setting the parameter to a value higher than what the meter is capable of displaying of course has no effect. If max_increase is exceeded, a couple of files are written which contains the misread value as part of the filename.  These can be used to see if any readjustments need to be made. <br/>
+  Example:  `max_increase: 1.5`
+
 **Configuration of MQTT Client** <br/>
 `gasmeter_analyzer` provides an MQTT Client which uses a simple single shot publisher for each message sent to the broker.
 * `client_name` - A name used by the broker to identify the gasmeter_analyzer as an MQTT client. <br/>
