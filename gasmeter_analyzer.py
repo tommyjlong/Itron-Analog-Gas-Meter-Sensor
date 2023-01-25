@@ -469,7 +469,7 @@ if (response != False):
             
             if (last_value > int_meter_value):
                 _LOGGER.warning("Previously read value:%i > just read value:%i. Not using meter value.",last_value, int_meter_value)
-            elif (int_meter_value - last_value > max_increase):
+            elif (int_meter_value - last_value > max_increase * 100):
                 _LOGGER.warning("Just read value:%i - prev read value:%i > max_change. \
                   Not using meter value.",int_meter_value, last_value)
                 cv2.imwrite(data_path + 'image2_rotated_'+ str(int_meter_value) +'.jpg', imcopy_debug)
