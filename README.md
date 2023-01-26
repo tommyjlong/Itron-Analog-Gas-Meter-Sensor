@@ -25,6 +25,8 @@ The python3 code for the `gasmeter_analyzer` does the following:
 Before the Gas Analyzer can be used, **an alignment process must be performed  and the dial coordinates need to be determined.** See the [Alignment and Coordinates Doc](./readme_media/Align_Coordinates.pdf).
 
 Note: The code's image processing is rather CPU intensive and so one should take caution when deploying it on a system that needs to do other important/critical things as well. _I actually wanted to try this out on a PiZeroW, but opencv2 (which gasmeter_analyzer uses extensively) doesn't install so easily, and I didn't spend anymore time trying to get it to run._
+
+Note: The Python code expects the following modules to be installed (I use `pip3 install`): requests, opencv-python, pandas, matplotlib, paho-mqtt, pyyaml
  
 ## Theory of Operation
 The `gasmeter_analyzer` takes the configured dial coordinates for an individual gauge (that is the center of rotation for the needle), and takes the configured radius and will draw a circle around the dial.  This circle should be nearly the same size as the gauge's circle on the face of the gas meter.  This circle is a single pixel in thickness and there will be several hundred pixels making up the circle.  The `gasmeter_analyzer` will next draw lines from the dial's center to each pixel in the circle and will also compute the angle of the drawn line with 0 degrees at the topmost point of the circle.  
@@ -174,7 +176,7 @@ There is not anything in particular that needs to be configured. Just be aware t
 
 # Shell Script
 `capture_analyze.sh` is a simple Linux Bash shell script that is provided with this project.  It provides two functions:
-* Performs an HTTP GET request to the camera to take a picture of the gas meter, and then it waits a second.
+* Performs an HTTP GET request to the camera to take a picture of the gas meter, and then it waits a second.  Note: This uses `curl` so make sure you have it installed.  For Ubuntu systems use: `sudo apt install curl`.
 * Runs the Gas Meter Analyzer.  It assumes the `gasmeter_analyzer` is in a Python3 virtual environment in a particular directory.  It can also pass in as an argument to gasmeter_analyaer.py the directory location of where the config.yaml file is located.  A sample is provided.
 You will need to tailor this script somewhat to fit your needs.
 
@@ -202,12 +204,12 @@ sensor:
     name: Gas Meter
     icon: mdi:gauge
     state_topic: "gasmeter/outside/value"
-    unit_of_measurement: 'ft³' #Actual is ccf, but ccf not available in HA.
+    unit_of_measurement: 'ft³' #Actual is ccf
     device_class: 'gas'
     state_class: 'total_increasing' #value monotonically increasing
     value_template: " {{ ( value | multiply(1))  | round (2) }}"
 ```
-The Gas Meter Analyzer outputs a MQTT value as read from the meter, and in my case, the Itron gas meter readings are in units of ccf. As of this writting, Home Assistant does not support ccf units for its Energy Management.  The closest thing is cubic feet.  I chose in my setup to use ft³ but _pretend_ they are units of ccf.  If one wants actual ccf values, one can change the multiplier in the value template to `multiply(100)`.
+The Gas Meter Analyzer outputs a MQTT value as read from the meter, and in my case, the Itron gas meter readings are in units of CCF. Starting with release 2022.12, Home Assistant supports CCF units for sensors and for its Energy Management.  However the Energy Management features displays the units as ft³ and not CCF. So if your sensor is set up use CCF, the Energy Management will take the hourly difference in the sensor's readings and multiply by 100 to display the results in ft³. Since my provider tracks and bills my usage based on CCF and not ft³, I have chosen in my setup to use ft³ but _pretend_ the Energy Management is displaying in units of ccf.  
 ## Pi Camera Enclosure
 <img alt="Raspberry Pi Camera Assembly" src="./readme_media/PiCamera.png" width="250" height="194"  /><br/>
 _My Raspberry Pi Camera and its enclosure._ <br/>
